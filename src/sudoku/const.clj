@@ -43,4 +43,3 @@
           peers (set (difference (reduce #(union %1 (set %2)) #{} (get *units* "A1")) (set s)))]
       [s peers])))
 
-
