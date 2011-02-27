@@ -2,10 +2,12 @@
   (:use [sudoku :only [in?]]
         [clojure.set :only [union difference]]))
 
-
 (defn- x [as, bs]
   "Cross product of A x B"
   (for [a as b bs] (str a b)))
+
+(defn- third [coll]
+  (take-nth 3 coll))
 
 (def *digits* "123456789")
 (def *rows* "ABCDEFGHI")
@@ -24,18 +26,19 @@
     (assoc map key (conj (get map key #{}) val))))
 
 (def *units*
-  (reduce
-    collect
-    {}
-    (for [s *squares*
-          units (filter #(in? % s) *unitlist*)]
-      [s units])))
+  (zipmap
+    *squares*
+    (map (fn [s] (filter #(in? % s) *unitlist*)) *squares*)))
 
 (def *peers*
-  (reduce
-    collect
-    {}
-    (for [s *squares*
-          peers (set (difference (reduce #(union %1 (set %2)) #{} (get *units* "A1")) (set s)))]
-      [s peers])))
+  (zipmap *squares*
+  (map #(filter (fn [s] (not (= % s))) (apply concat (get *units* %))) *squares*))
+)
+
+;; getters
+(defn peers [square]
+  (get *peers* square))
+
+(defn units [square]
+  (get *units* square))
 

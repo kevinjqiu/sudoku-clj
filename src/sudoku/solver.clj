@@ -1,6 +1,7 @@
 (ns sudoku.solver
   (:use [clojure.contrib.logging :only [spy info]]
         [clojure.contrib.string :only [join]]
+        [clojure.contrib.trace :only [dotrace]]
         [sudoku :only [in?]]
         [sudoku.const :only [*squares* *peers* *digits* *units* *rows* *cols*]]))
 
@@ -23,46 +24,44 @@
   "returns digits with digit eliminated"
   (clojure.string/replace-first digits digit ""))
 
-(defn- try-assign-digit-in-unit [grid-ref current-unit digit]
-  "assign digit to the one place available to it in unit,
-  otherwise, return false"
-  (println (str "try-assign-digit-in-unit: " (apply str current-unit) ", " digit))
-  (let [places-for-digit (filter #(in? (get @grid-ref %) digit) current-unit)]
-    (cond (empty? places-for-digit) (do (println "no place for digit") false) ;; Contradiction: no place for digit
-          (= 1 (count places-for-digit))
-            ;; assign it!
-          (do (println "assign it")
-            (assign grid-ref (first places-for-digit) digit))
-          :else true)))
+(defn- try-eliminate-value-from-peers
+  [grid-ref square digits]
+  "If a square has only one possible value,
+  then eliminate value from the square's peers.
+  return false if there's a contradiction"
+  (cond
+    (empty? digits) false ;; the last digit was removed
+    (= 1 (count digits))
+      ; if not all(eliminate(values, s2, d2) for s2 in peers[s]
+      (do (println (get *peers* square))
+      (every? true? (map #(eliminate grid-ref % (first digits)) (get *peers* square))))
+    :else true))
 
-(defn- try-assign-digit-in-units [grid-ref units digit]
-  (some true? (map #(try-assign-digit-in-unit grid-ref % digit) units)))
-
-(defn- no-contradictions? [grid-ref square remaining-digits]
-  (println remaining-digits)
-  (cond 
-    (empty? remaining-digits) (do (println "last digit removed" false)) ;; Contradiction: last digit removed
-    (= 1 (count remaining-digits))
-      ;; if a square is reduced only to a single value, 
-      ;; eliminate that value from its peers.
-      (every? true? (map #(eliminate grid-ref % remaining-digits) (get *peers* square)))
-    :else
-      true))
+(defn- try-put-value-in-units
+  [grid-ref units digit]
+  "If a unit has only one possible place for a digit,
+  then put the value there"
+  (every? true?
+    (for [unit units]
+      (let [digit-places (filter #(in? (get @grid-ref %) digit) unit)]
+        (cond (empty? digit-places) false ;; contradiction: no place for this value
+              (= 1 (count digit-places))
+                (assign grid-ref (first digit-places) digit)
+              :else true)))))
 
 (defn- eliminate [grid-ref square digit]
-  "Eliminate d from @grid-ref[square]; propagate when values or places <= 2.
-  Return false if contradiction is detected. False otherwise"
+  "Eliminate digit from @grid-ref[square]; propagate when values or places <= 2.
+  Return false if contradiction is detected." 
   (println (str "eliminate[" square "," digit "]"))
   (let [digits (get @grid-ref square)]
+    (println "digits: " digits ", digit: " digit ", " (in? digits digit))
     (if (not (in? digits digit)) true
-      (let [new-values (eliminated digits digit)]
-        (dosync (alter grid-ref #(assoc % square new-values)))
+      (let [new-digits (eliminated digits digit)]
+        (dosync (alter grid-ref #(assoc % square new-digits)))
         (print (render-grid @grid-ref))
         (if @*solving* (read-line) "")
-        ;(println (str "new-gridref" (get @grid-ref square)))
-        (if (not (no-contradictions? grid-ref square new-values)) false
-          ;; if the unit is reduced to only one place for value d, then put it there
-          (try-assign-digit-in-units grid-ref (get *units* square) digit))))))
+        (if (not (try-eliminate-value-from-peers grid-ref square new-digits)) false
+          (try-put-value-in-units grid-ref (get *units* square) digit))))))
 
 (defn- assign [grid-ref square digit]
   "Eliminate all the other values (except d) from grid[square]
@@ -76,9 +75,9 @@
   in the form of {square: digits},
   or False if a contradiction is detected."
   (let [grid-ref (ref (create-init-grid))
-        values (grid-values grid-str)]
+        grid-values (grid-values grid-str)]
     ;; if digit is not in *digits*, it's a blank cell
-    (if (every? true? (map #(or (not (in? *digits* (last %))) (assign grid-ref (first %) (last %))) values))
+    (if (every? true? (map #(or (not (in? *digits* (last %))) (assign grid-ref (first %) (last %))) grid-values))
       (do (println "YAY!") grid-ref)
       (do (println "OH CRAP") false))))
 
