@@ -6,7 +6,7 @@
 
 (def *test-grid* "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......")
 
-(def *solving* (ref false))
+(def *solving* (ref true))
 
 (declare assign)
 (declare eliminate)
@@ -117,20 +117,6 @@
       (throw (java.lang.Exception.))
       (last (apply min-key #(first %) candidates)))))
 
-;
-;  (last
-;    (apply 
-;      min-key
-;      #(first %)
-;      (filter #(< 1 (first %))
-;        (map 
-;          (fn [square]
-;            (let [possibilities (get @grid-ref square)
-;                  num-possibilities (count possibilities)]
-;              (println num-possibilities square)
-;              [num-possibilities square]))
-;          *squares*)))))
-  
 (defn- copy-map [a-map]
   (apply hash-map (interleave (keys a-map) (vals a-map))))
 
@@ -143,10 +129,10 @@
                 success (some (-> not false?) (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
             (if (true? success) @grid-ref false))))
 
-;(defn solve [grid-str]
-;  (let [grid-ref (parse-grid grid-str)]
-;    (dosync (ref-set *solving* true))
-;    (search grid-ref)))
+(defn solve [grid-str]
+  (let [grid-ref (parse-grid grid-str)]
+    (dosync (ref-set *solving* true))
+    (search grid-ref)))
 
 (println (render-grid @(parse-grid *test-grid*)))
 
