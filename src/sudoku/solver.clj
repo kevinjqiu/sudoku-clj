@@ -105,12 +105,29 @@
           (if (contains? #{\C \F} row) (str line "\n") "")))
       *rows*))))
 
-;(defn- search [grid-ref]
-;
-;
-;
-;(defn solve [grid-str]
-;  (search (parse-grid grid-str)))
+(defn- find-next-square [grid-ref]
+  (:square 
+    (apply 
+      min-key
+      :num-possibilities
+      (filter #(not (= 0 (first %)))
+        (map 
+          (fn [square]
+            (let [possibilities (get @grid-ref square)
+                  num-possibilities (count possibilities)]
+              {:num-possibilities num-possibilities
+               :square square}))
+          *squares*)))))
+  
+(defn- search [grid-ref]
+  (cond (false? @grid-ref) false
+        (every? true? (map #(= 1 (count (get @grid-ref %))) *squares*)) grid-ref ;; solved!
+        :else
+          ;; choose the unfilled square s with the fewest possibilities
+          (let [s (find-next-square grid-ref)] '())))
+
+(defn solve [grid-str]
+  (search (parse-grid grid-str)))
 
 (let [rows (render-grid @(parse-grid *test-grid*))]
   (println rows))
