@@ -6,8 +6,11 @@
 
 (def *test-grid* "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......")
 
+(def *solving* (ref false))
+
 (declare assign)
 (declare eliminate)
+(declare render-grid)
 
 (defn- create-init-grid []
   (into {} (map #(vector % *digits*) *squares*)))
@@ -23,12 +26,13 @@
 (defn- try-assign-digit-in-unit [grid-ref current-unit digit]
   "assign digit to the one place available to it in unit,
   otherwise, return false"
-  (println (str "try-assign-digit-in-unit: " current-unit ", " digit))
+  (println (str "try-assign-digit-in-unit: " (apply str current-unit) ", " digit))
   (let [places-for-digit (filter #(in? (get @grid-ref %) digit) current-unit)]
     (cond (empty? places-for-digit) (do (println "no place for digit") false) ;; Contradiction: no place for digit
           (= 1 (count places-for-digit))
             ;; assign it!
-            (assign grid-ref (first places-for-digit) digit)
+          (do (println "assign it")
+            (assign grid-ref (first places-for-digit) digit))
           :else true)))
 
 (defn- try-assign-digit-in-units [grid-ref units digit]
@@ -53,6 +57,8 @@
     (if (not (in? digits digit)) true
       (let [new-values (eliminated digits digit)]
         (dosync (alter grid-ref #(assoc % square new-values)))
+        (print (render-grid @grid-ref))
+        (if @*solving* (read-line) "")
         ;(println (str "new-gridref" (get @grid-ref square)))
         (if (not (no-contradictions? grid-ref square new-values)) false
           ;; if the unit is reduced to only one place for value d, then put it there
@@ -137,15 +143,16 @@
                 success (some (-> not false?) (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
             (if (true? success) @grid-ref false))))
 
-(defn solve [grid-str]
-  (search (parse-grid grid-str)))
+;(defn solve [grid-str]
+;  (let [grid-ref (parse-grid grid-str)]
+;    (dosync (ref-set *solving* true))
+;    (search grid-ref)))
 
-;(let [rows (render-grid @(parse-grid *test-grid*))]
-;  (println rows))
+(println (render-grid @(parse-grid *test-grid*)))
 
-(try
-  (let [grid (solve *test-grid*)]
-    (println (render-grid grid)))
-
-  (catch Exception ex (println (-> ex .getMessage))))
+;(try
+;  (let [grid (solve *test-grid*)]
+;    (println (render-grid grid)))
+;
+;  (catch Exception ex (println (-> ex .getMessage))))
 
