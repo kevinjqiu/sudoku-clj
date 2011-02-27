@@ -1,11 +1,7 @@
 (ns sudoku.const
-  (:use [clojure.set :only [union difference]]))
+  (:use [sudoku :only [in?]]
+        [clojure.set :only [union difference]]))
 
-(defn- in? [seq elem]
-  "Surprisingly, clojure doesn't provide a standard function
-  for such a frequently used case?
-  contains? tests whether an element can be `get` from a coll"
-  (some #(= % elem) seq))
 
 (defn- x [as, bs]
   "Cross product of A x B"
