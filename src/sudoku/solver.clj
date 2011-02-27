@@ -70,7 +70,8 @@
   or False if a contradiction is detected."
   (let [grid-ref (ref (create-init-grid))
         values (grid-values grid)]
-    (if (every? true? (map #(assign grid-ref (first %) (last %)) values))
+    ;; if digit is not in *digits*, it's a blank cell
+    (if (every? true? (map #(or (not (in? *digits* (last %))) (assign grid-ref (first %) (last %))) values))
       (do (println "YAY!") @grid-ref)
       (do (println "OH CRAP") false))))
 
