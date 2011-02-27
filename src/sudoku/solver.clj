@@ -106,18 +106,24 @@
       *rows*))))
 
 (defn- find-next-square [grid-ref]
-  (:square 
-    (apply 
-      min-key
-      :num-possibilities
-      (filter #(not (= 0 (first %)))
-        (map 
-          (fn [square]
-            (let [possibilities (get @grid-ref square)
-                  num-possibilities (count possibilities)]
-              {:num-possibilities num-possibilities
-               :square square}))
-          *squares*)))))
+  (let [candidates (filter #(< 1 (first %)) (map (fn [square] (let [candidates (get @grid-ref square) cnt (count candidates)] [cnt square])) *squares*))]
+    (if (empty? candidates) 
+      (throw (java.lang.Exception.))
+      (last (apply min-key #(first %) candidates)))))
+
+;
+;  (last
+;    (apply 
+;      min-key
+;      #(first %)
+;      (filter #(< 1 (first %))
+;        (map 
+;          (fn [square]
+;            (let [possibilities (get @grid-ref square)
+;                  num-possibilities (count possibilities)]
+;              (println num-possibilities square)
+;              [num-possibilities square]))
+;          *squares*)))))
   
 (defn- copy-map [a-map]
   (apply hash-map (interleave (keys a-map) (vals a-map))))
@@ -127,9 +133,8 @@
         (every? true? (map #(= 1 (count (get @grid-ref %))) *squares*)) grid-ref ;; solved!
         :else
           ;; choose the unfilled square s with the fewest possibilities
-          (let [s (find-next-square grid-ref) 
-                success (some true? (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign grid-ref s %) (search grid-ref) false)) (get @grid-ref s)))]
-            (println "success: " success)
+          (let [s (find-next-square grid-ref)
+                success (some (-> not false?) (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
             (if (true? success) @grid-ref false))))
 
 (defn solve [grid-str]
@@ -138,7 +143,9 @@
 ;(let [rows (render-grid @(parse-grid *test-grid*))]
 ;  (println rows))
 
+(try
+  (let [grid (solve *test-grid*)]
+    (println (render-grid grid)))
 
-(let [grid (solve *test-grid*)]
-  (println (render-grid grid)))
+  (catch Exception ex (println (-> ex .getMessage))))
 
