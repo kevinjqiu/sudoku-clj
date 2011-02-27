@@ -124,11 +124,18 @@
         (every? true? (map #(= 1 (count (get @grid-ref %))) *squares*)) grid-ref ;; solved!
         :else
           ;; choose the unfilled square s with the fewest possibilities
-          (let [s (find-next-square grid-ref)] '())))
+          (let [s (find-next-square grid-ref) 
+                success (some true? (map #(assign grid-ref s %) (get @grid-ref s)))]
+            (if (true? success) @grid-ref false))))
 
 (defn solve [grid-str]
   (search (parse-grid grid-str)))
 
-(let [rows (render-grid @(parse-grid *test-grid*))]
-  (println rows))
+;(let [rows (render-grid @(parse-grid *test-grid*))]
+;  (println rows))
+
+
+(let [grid (solve *test-grid*)]
+  (println (render-grid grid)))
+
 
