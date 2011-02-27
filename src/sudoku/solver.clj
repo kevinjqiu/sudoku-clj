@@ -1,7 +1,8 @@
 (ns sudoku.solver
   (:use [clojure.contrib.logging :only [spy info]]
+        [clojure.contrib.string :only [join]]
         [sudoku :only [in?]]
-        [sudoku.const :only [*squares* *peers* *digits* *units*]]))
+        [sudoku.const :only [*squares* *peers* *digits* *units* *rows* *cols*]]))
 
 (def *test-grid* "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......")
 
@@ -64,16 +65,53 @@
   (let [digits-to-eliminate (eliminated (get @grid-ref square) digit)]
     (every? true? (map #(eliminate grid-ref square %) digits-to-eliminate))))
 
-(defn parse-grid [grid]
-  "convert grid to a map of possible values,
+(defn- parse-grid [grid-str]
+  "convert grid-str to a map of possible values,
   in the form of {square: digits},
   or False if a contradiction is detected."
   (let [grid-ref (ref (create-init-grid))
-        values (grid-values grid)]
+        values (grid-values grid-str)]
     ;; if digit is not in *digits*, it's a blank cell
     (if (every? true? (map #(or (not (in? *digits* (last %))) (assign grid-ref (first %) (last %))) values))
-      (do (println "YAY!") @grid-ref)
+      (do (println "YAY!") grid-ref)
       (do (println "OH CRAP") false))))
 
-(print (parse-grid *test-grid*))
+(defn- centre [content width]
+  (if (>= (count content) width)
+    content
+    (let [num-spaces (- width (count content))
+          spaces-before (int (/ num-spaces 2))
+          spaces-after (- num-spaces spaces-before)]
+      (str 
+        (apply str (repeat spaces-before " ")) 
+        content 
+        (apply str (repeat spaces-after " "))))))
+
+(defn- render-grid [grid]
+  (let [width (+ 1 (apply max (map #(count (get grid %)) *squares*)))
+        line (clojure.string/join "+" (repeat 3 (apply str (repeat (* width 3) \-))))]
+    (apply str (map 
+      (fn [row] 
+        (str
+          (apply 
+            str 
+            (apply str (map 
+              (fn [col] 
+                (str 
+                  (centre (get grid (str row col)) width)
+                  (if (contains? #{\3 \6} col) "|" "")))
+              *cols*)))
+          "\n"
+          (if (contains? #{\C \F} row) (str line "\n") "")))
+      *rows*))))
+
+;(defn- search [grid-ref]
+;
+;
+;
+;(defn solve [grid-str]
+;  (search (parse-grid grid-str)))
+
+(let [rows (render-grid @(parse-grid *test-grid*))]
+  (println rows))
 
