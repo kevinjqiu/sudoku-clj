@@ -119,13 +119,16 @@
                :square square}))
           *squares*)))))
   
+(defn- copy-map [a-map]
+  (apply hash-map (interleave (keys a-map) (vals a-map))))
+
 (defn- search [grid-ref]
   (cond (false? @grid-ref) (do (println "grid-ref=false") false)
         (every? true? (map #(= 1 (count (get @grid-ref %))) *squares*)) grid-ref ;; solved!
         :else
           ;; choose the unfilled square s with the fewest possibilities
           (let [s (find-next-square grid-ref) 
-                success (some true? (map #(assign grid-ref s %) (get @grid-ref s)))]
+                success (some true? (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign grid-ref s %) (search grid-ref) false)) (get @grid-ref s)))]
             (println "success: " success)
             (if (true? success) @grid-ref false))))
 
