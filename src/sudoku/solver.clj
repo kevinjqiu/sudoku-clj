@@ -3,7 +3,7 @@
         [clojure.contrib.string :only [join]]
         [clojure.contrib.trace :only [dotrace]]
         [sudoku :only [in?]]
-        [sudoku.const :only [*squares* *peers* *digits* *units* *rows* *cols*]]))
+        [sudoku.const :only [peers units *squares* *digits* *rows* *cols*]]))
 
 (def *test-grid* "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......")
 
@@ -33,8 +33,7 @@
     (empty? digits) false ;; the last digit was removed
     (= 1 (count digits))
       ; if not all(eliminate(values, s2, d2) for s2 in peers[s]
-      (do (println (get *peers* square))
-      (every? true? (map #(eliminate grid-ref % (first digits)) (get *peers* square))))
+      (every? true? (map #(eliminate grid-ref % (first digits)) (peers square)))
     :else true))
 
 (defn- try-put-value-in-units
@@ -52,21 +51,21 @@
 (defn- eliminate [grid-ref square digit]
   "Eliminate digit from @grid-ref[square]; propagate when values or places <= 2.
   Return false if contradiction is detected." 
-  (println (str "eliminate[" square "," digit "]"))
+  ;(println (str "eliminate[" square "," digit "]"))
   (let [digits (get @grid-ref square)]
-    (println "digits: " digits ", digit: " digit ", " (in? digits digit))
+    ;(println "digits: " digits ", digit: " digit ", " (in? digits digit))
     (if (not (in? digits digit)) true
       (let [new-digits (eliminated digits digit)]
         (dosync (alter grid-ref #(assoc % square new-digits)))
-        (print (render-grid @grid-ref))
-        (if @*solving* (read-line) "")
+        ;(print (render-grid @grid-ref))
+        ;(if @*solving* (read-line) "")
         (if (not (try-eliminate-value-from-peers grid-ref square new-digits)) false
-          (try-put-value-in-units grid-ref (get *units* square) digit))))))
+          (try-put-value-in-units grid-ref (units square) digit))))))
 
 (defn- assign [grid-ref square digit]
   "Eliminate all the other values (except d) from grid[square]
   and propagate. Return false if a contradiction is detected"
-  (println (str "assign[" square "," digit "]"))
+  ;(println (str "assign[" square "," digit "]"))
   (let [digits-to-eliminate (eliminated (get @grid-ref square) digit)]
     (every? true? (map #(eliminate grid-ref square %) digits-to-eliminate))))
 
@@ -112,20 +111,18 @@
 
 (defn- find-next-square [grid-ref]
   (let [candidates (filter #(< 1 (first %)) (map (fn [square] (let [candidates (get @grid-ref square) cnt (count candidates)] [cnt square])) *squares*))]
-    (if (empty? candidates) 
-      (throw (java.lang.Exception.))
-      (last (apply min-key #(first %) candidates)))))
+    (last (apply min-key #(first %) candidates))))
 
 (defn- copy-map [a-map]
   (apply hash-map (interleave (keys a-map) (vals a-map))))
 
 (defn- search [grid-ref]
-  (cond (false? @grid-ref) (do (println "grid-ref=false") false)
+  (cond (false? @grid-ref) false
         (every? true? (map #(= 1 (count (get @grid-ref %))) *squares*)) grid-ref ;; solved!
         :else
           ;; choose the unfilled square s with the fewest possibilities
           (let [s (find-next-square grid-ref)
-                success (some (-> not false?) (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
+                success (some true? (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
             (if (true? success) @grid-ref false))))
 
 (defn solve [grid-str]
@@ -133,11 +130,11 @@
     (dosync (ref-set *solving* true))
     (search grid-ref)))
 
-(println (render-grid @(parse-grid *test-grid*)))
+;(println (render-grid @(parse-grid *test-grid*)))
 
-;(try
-;  (let [grid (solve *test-grid*)]
-;    (println (render-grid grid)))
-;
-;  (catch Exception ex (println (-> ex .getMessage))))
+(try
+  (let [grid (solve *test-grid*)]
+    (print grid)
+    (println (render-grid grid)))
+  (catch Exception ex (println "foobar:" (-> ex .printStackTrace))))
 
