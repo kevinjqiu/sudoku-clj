@@ -14,7 +14,7 @@
 (declare render-grid)
 
 (defn- create-init-grid []
-  (into {} (map #(vector % *digits*) *squares*)))
+  (zipmap *squares* (repeat (count *squares*) *digits*)))
 
 (defn- grid-values [grid]
   "convert grid string into a dict of {square:char} with '.' representing empty cell"
