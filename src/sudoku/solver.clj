@@ -49,7 +49,7 @@
       (let [digit-places (filter #(in? (get @grid-ref %) digit) unit)]
         (trace (str "places for " digit " in unit: " (apply str unit) "=" (apply str digit-places)))
         (cond (empty? digit-places) false ;; contradiction: no place for this value
-              (= 1 (count digit-places))
+              (= 1 (count digit-places))  ;; if there's only one place for the digit, assign it!
                 (assign grid-ref (first digit-places) digit)
               :else true)))))
 
@@ -128,7 +128,8 @@
           ;; choose the unfilled square s with the fewest possibilities
           (let [s (find-next-square grid-ref)]
             (println ">>> next: " s ":" (get @grid-ref s))
-            (let [success (some true? (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
+            ;(let [success (some true? (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
+            (let [success (some true? (map #(if (assign grid-ref s %) (search grid-ref) false) (get @grid-ref s)))]
               (if (true? success) @grid-ref false)))))
 
 (defn solve [grid-str]
