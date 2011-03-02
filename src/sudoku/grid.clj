@@ -39,3 +39,38 @@
 (defn units [square]
   (get *units* square))
 
+(defn- centre [content width]
+  (if (>= (count content) width)
+    content
+    (let [num-spaces (- width (count content))
+          spaces-before (int (/ num-spaces 2))
+          spaces-after (- num-spaces spaces-before)]
+      (str 
+        (apply str (repeat spaces-before " ")) 
+        content 
+        (apply str (repeat spaces-after " "))))))
+
+(defn render-grid [grid]
+  (let [width (+ 1 (apply max (map #(count (get grid %)) *squares*)))
+        line (clojure.string/join "+" (repeat 3 (apply str (repeat (* width 3) \-))))]
+    (apply str (map 
+      (fn [row] 
+        (str
+          (apply 
+            str 
+            (apply str (map 
+              (fn [col] 
+                (str 
+                  (centre (get grid (str row col)) width)
+                  (if (contains? #{\3 \6} col) "|" "")))
+              *cols*)))
+          "\n"
+          (if (contains? #{\C \F} row) (str line "\n") "")))
+      *rows*))))
+
+(defn create-init-grid []
+  (zipmap *squares* (repeat (count *squares*) *digits*)))
+
+(defn grid-values [grid-str]
+  "convert grid string into a dict of {square:char} with '.' representing empty cell"
+  (zipmap *squares* grid-str))

@@ -1,18 +1,10 @@
 (ns sudoku.solver
-  (:use [clojure.contrib.logging :only [spy info]]
-        [clojure.contrib.string :only [join]]
-        [sudoku :only [in? copy-map first-not-falsy-elem]]
-        [sudoku.grid :only [peers units *squares* *digits* *rows* *cols*]]))
+  (:use [sudoku :only [in? copy-map first-not-falsy-elem]]
+        [sudoku.grid :only [peers units *squares* *digits* *rows* *cols* render-grid create-init-grid grid-values]]))
 
 
-(declare assign eliminate render-grid)
+(declare assign eliminate)
 
-(defn- create-init-grid []
-  (zipmap *squares* (repeat (count *squares*) *digits*)))
-
-(defn- grid-values [grid]
-  "convert grid string into a dict of {square:char} with '.' representing empty cell"
-  (zipmap *squares* grid))
 
 (defn- eliminated [digits digit]
   "returns digits with digit eliminated"
@@ -69,34 +61,6 @@
       grid-ref
       false)))
 
-(defn- centre [content width]
-  (if (>= (count content) width)
-    content
-    (let [num-spaces (- width (count content))
-          spaces-before (int (/ num-spaces 2))
-          spaces-after (- num-spaces spaces-before)]
-      (str 
-        (apply str (repeat spaces-before " ")) 
-        content 
-        (apply str (repeat spaces-after " "))))))
-
-(defn- render-grid [grid]
-  (let [width (+ 1 (apply max (map #(count (get grid %)) *squares*)))
-        line (clojure.string/join "+" (repeat 3 (apply str (repeat (* width 3) \-))))]
-    (apply str (map 
-      (fn [row] 
-        (str
-          (apply 
-            str 
-            (apply str (map 
-              (fn [col] 
-                (str 
-                  (centre (get grid (str row col)) width)
-                  (if (contains? #{\3 \6} col) "|" "")))
-              *cols*)))
-          "\n"
-          (if (contains? #{\C \F} row) (str line "\n") "")))
-      *rows*))))
 
 (defn- find-next-square [grid-ref]
   (let [candidates (filter #(< 1 (first %)) (map (fn [square] (let [candidates (get @grid-ref square) cnt (count candidates)] [cnt square])) *squares*))]
