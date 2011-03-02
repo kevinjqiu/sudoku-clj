@@ -1,10 +1,9 @@
 (ns sudoku.solver
   (:use [clojure.contrib.logging :only [spy info]]
         [clojure.contrib.string :only [join]]
-        [sudoku :only [in?]]
-        [sudoku.const :only [peers units *squares* *digits* *rows* *cols*]]))
+        [sudoku :only [in? copy-map first-not-falsy-elem]]
+        [sudoku.grid :only [peers units *squares* *digits* *rows* *cols*]]))
 
-(def *test-grid* "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......")
 
 (declare assign eliminate render-grid)
 
@@ -103,38 +102,27 @@
   (let [candidates (filter #(< 1 (first %)) (map (fn [square] (let [candidates (get @grid-ref square) cnt (count candidates)] [cnt square])) *squares*))]
     (last (apply min-key #(first %) candidates))))
 
-(defn- copy-map [a-map]
-  (apply hash-map (interleave (keys a-map) (vals a-map))))
-
-(defn any
-  ([elem coll]
-  (cond (empty? coll) elem
-        ((comp not false?) elem) elem
-        :else (recur (first coll) (rest coll))))
-  ([coll]
-  (any (first coll) (rest coll))))
 
 (defn- search [grid-ref]
-  (print (render-grid @grid-ref))
   (cond (false? @grid-ref) false
         (every? true? (map #(= 1 (count (get @grid-ref %))) *squares*)) grid-ref ;; solved!
         :else
           ;; choose the unfilled square s with the fewest possibilities
           (let [s (find-next-square grid-ref)]
-            (let [success (any
+            (let [success (first-not-falsy-elem
                             (map 
                               #(let [new-grid-ref (ref (copy-map @grid-ref))] 
                                  (if (assign new-grid-ref s %) 
                                    (search new-grid-ref)
                                    false)) 
                               (get @grid-ref s)))]
-              (if ((comp not false?) success) (do (println success) success) false)))))
+              (if ((comp not false?) success) success false)))))
 
 (defn solve [grid-str]
   (let [grid-ref (parse-grid grid-str)]
     (search grid-ref)))
 
-
+(def *test-grid* "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......")
 (let [grid (solve *test-grid*)]
   (println (render-grid @grid)))
 

@@ -1,13 +1,10 @@
-(ns sudoku.const
+(ns sudoku.grid
   (:use [sudoku :only [in?]]
         [clojure.set :only [union difference]]))
 
 (defn- x [as, bs]
   "Cross product of A x B"
   (for [a as b bs] (str a b)))
-
-(defn- third [coll]
-  (take-nth 3 coll))
 
 (def *digits* "123456789")
 (def *rows* "ABCDEFGHI")
