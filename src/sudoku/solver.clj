@@ -6,15 +6,7 @@
 
 (def *test-grid* "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......")
 
-(def *solving* (ref false))
-
-(declare assign)
-(declare eliminate)
-(declare render-grid)
-
-(defn- trace [msg]
-  ;(if (true? @*solving*) (println msg)))
-  "")
+(declare assign eliminate render-grid)
 
 (defn- create-init-grid []
   (zipmap *squares* (repeat (count *squares*) *digits*)))
@@ -32,7 +24,6 @@
   "If a square has only one possible value,
   then eliminate value from the square's peers.
   return false if there's a contradiction"
-  (trace (str "try-eliminate-digit-from-peers:" square " " digits))
   (cond
     (empty? digits) false ;; the last digit was removed
     (= 1 (count digits))
@@ -44,11 +35,9 @@
   [grid-ref units digit]
   "If a unit has only one possible place for a digit,
   then put the value there"
-  (trace (str "try-put-value-in-units" units " " digit))
   (every? true?
     (for [unit units]
       (let [digit-places (filter #(in? (get @grid-ref %) digit) unit)]
-        (trace (str "places for " digit " in unit: " (apply str unit) "=" (apply str digit-places)))
         (cond (empty? digit-places) false ;; contradiction: no place for this value
               (= 1 (count digit-places))  ;; if there's only one place for the digit, assign it!
                 (assign grid-ref (first digit-places) digit)
@@ -58,9 +47,8 @@
   "Eliminate digit from @grid-ref[square]; propagate when values or places <= 2.
   Return false if contradiction is detected." 
   (let [digits (get @grid-ref square)]
-    (if (not (in? digits digit)) (do (trace (str ">>> " square "-=" digit "; skip")) true)
+    (if (not (in? digits digit)) true
       (let [new-digits (eliminated digits digit)]
-        (trace (str ">>> " square "-=" digit))
         (dosync (alter grid-ref #(assoc % square new-digits)))
         ;(print (render-grid @grid-ref))
         (if (not (try-eliminate-digit-from-peers grid-ref square new-digits)) false
@@ -69,7 +57,6 @@
 (defn- assign [grid-ref square digit]
   "Eliminate all the other values (except d) from grid[square]
   and propagate. Return false if a contradiction is detected"
-  (trace (str ">>> ASSIGN: " square "<-" digit ))
   (let [digits-to-eliminate (eliminated (get @grid-ref square) digit)]
     (every? true? (map #(eliminate grid-ref square %) digits-to-eliminate))))
 
@@ -127,12 +114,18 @@
         :else
           ;; choose the unfilled square s with the fewest possibilities
           (let [s (find-next-square grid-ref)]
-            (let [success (some #(not (false? %)) (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
+            (let [success (some 
+                            (comp false? not) ;; instead of #(not (false? %))
+                            (map 
+                              #(let [new-grid-ref (ref (copy-map @grid-ref))] 
+                                 (if (assign new-grid-ref s %) 
+                                   (search new-grid-ref)
+                                   false)) 
+                              (get @grid-ref s)))]
               (if (true? success) @grid-ref false)))))
 
 (defn solve [grid-str]
   (let [grid-ref (parse-grid grid-str)]
-    (dosync (ref-set *solving* true))
     (search grid-ref)))
 
 
