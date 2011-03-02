@@ -50,7 +50,6 @@
     (if (not (in? digits digit)) true
       (let [new-digits (eliminated digits digit)]
         (dosync (alter grid-ref #(assoc % square new-digits)))
-        ;(print (render-grid @grid-ref))
         (if (not (try-eliminate-digit-from-peers grid-ref square new-digits)) false
           (try-put-digit-in-units grid-ref (units square) digit))))))
 
@@ -107,6 +106,14 @@
 (defn- copy-map [a-map]
   (apply hash-map (interleave (keys a-map) (vals a-map))))
 
+(defn any
+  ([elem coll]
+  (cond (empty? coll) elem
+        ((comp not false?) elem) elem
+        :else (recur (first coll) (rest coll))))
+  ([coll]
+  (any (first coll) (rest coll))))
+
 (defn- search [grid-ref]
   (print (render-grid @grid-ref))
   (cond (false? @grid-ref) false
@@ -114,15 +121,14 @@
         :else
           ;; choose the unfilled square s with the fewest possibilities
           (let [s (find-next-square grid-ref)]
-            (let [success (some 
-                            (comp false? not) ;; instead of #(not (false? %))
+            (let [success (any
                             (map 
                               #(let [new-grid-ref (ref (copy-map @grid-ref))] 
                                  (if (assign new-grid-ref s %) 
                                    (search new-grid-ref)
                                    false)) 
                               (get @grid-ref s)))]
-              (if (true? success) @grid-ref false)))))
+              (if ((comp not false?) success) (do (println success) success) false)))))
 
 (defn solve [grid-str]
   (let [grid-ref (parse-grid grid-str)]
@@ -130,5 +136,5 @@
 
 
 (let [grid (solve *test-grid*)]
-  (println (render-grid grid)))
+  (println (render-grid @grid)))
 
