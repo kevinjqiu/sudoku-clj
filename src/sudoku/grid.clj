@@ -1,5 +1,5 @@
 (ns sudoku.grid
-  (:use [sudoku :only [in?]]
+  (:use [sudoku.util :only [in?]]
         [clojure.set :only [union difference]]))
 
 (defn- x [as, bs]

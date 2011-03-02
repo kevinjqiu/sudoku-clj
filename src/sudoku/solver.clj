@@ -1,5 +1,5 @@
 (ns sudoku.solver
-  (:use [sudoku :only [in? copy-map first-not-falsy-elem]]
+  (:use [sudoku.util :only [in? copy-map first-not-falsy-elem]]
         [sudoku.grid :only [peers units *squares* *digits* *rows* *cols* render-grid create-init-grid grid-values]]))
 
 
