@@ -58,7 +58,6 @@
   "Eliminate digit from @grid-ref[square]; propagate when values or places <= 2.
   Return false if contradiction is detected." 
   (let [digits (get @grid-ref square)]
-    ;(println "digits: " digits ", digit: " digit ", " (in? digits digit))
     (if (not (in? digits digit)) (do (trace (str ">>> " square "-=" digit "; skip")) true)
       (let [new-digits (eliminated digits digit)]
         (trace (str ">>> " square "-=" digit))
@@ -128,7 +127,6 @@
         :else
           ;; choose the unfilled square s with the fewest possibilities
           (let [s (find-next-square grid-ref)]
-            (println ">>> next: " s ":" (get @grid-ref s))
             (let [success (some #(not (false? %)) (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
               (if (true? success) @grid-ref false)))))
 
@@ -138,8 +136,6 @@
     (search grid-ref)))
 
 
-(try
-  (let [grid (solve *test-grid*)]
-    (println (render-grid grid)))
-  (catch Exception ex (println "foobar:" (-> ex .printStackTrace))))
+(let [grid (solve *test-grid*)]
+  (println (render-grid grid)))
 
