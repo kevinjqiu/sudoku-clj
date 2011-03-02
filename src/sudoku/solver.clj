@@ -13,7 +13,8 @@
 (declare render-grid)
 
 (defn- trace [msg]
-  (if (true? @*solving*) (println msg)))
+  ;(if (true? @*solving*) (println msg)))
+  "")
 
 (defn- create-init-grid []
   (zipmap *squares* (repeat (count *squares*) *digits*)))
@@ -128,7 +129,7 @@
           ;; choose the unfilled square s with the fewest possibilities
           (let [s (find-next-square grid-ref)]
             (println ">>> next: " s ":" (get @grid-ref s))
-            (let [success (some true? (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
+            (let [success (some #(not (false? %)) (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
               (if (true? success) @grid-ref false)))))
 
 (defn solve [grid-str]
@@ -136,11 +137,9 @@
     (dosync (ref-set *solving* true))
     (search grid-ref)))
 
-;(println (render-grid @(parse-grid *test-grid*)))
 
 (try
   (let [grid (solve *test-grid*)]
-    (print grid)
     (println (render-grid grid)))
   (catch Exception ex (println "foobar:" (-> ex .printStackTrace))))
 
