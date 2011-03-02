@@ -26,12 +26,12 @@
   "returns digits with digit eliminated"
   (clojure.string/replace-first digits digit ""))
 
-(defn- try-eliminate-value-from-peers
+(defn- try-eliminate-digit-from-peers
   [grid-ref square digits]
   "If a square has only one possible value,
   then eliminate value from the square's peers.
   return false if there's a contradiction"
-  (trace (str "try-eliminate-value-from-peers:" square " " digits))
+  (trace (str "try-eliminate-digit-from-peers:" square " " digits))
   (cond
     (empty? digits) false ;; the last digit was removed
     (= 1 (count digits))
@@ -39,7 +39,7 @@
       (every? true? (map #(eliminate grid-ref % (first digits)) (peers square)))
     :else true))
 
-(defn- try-put-value-in-units
+(defn- try-put-digit-in-units
   [grid-ref units digit]
   "If a unit has only one possible place for a digit,
   then put the value there"
@@ -63,8 +63,8 @@
         (trace (str ">>> " square "-=" digit))
         (dosync (alter grid-ref #(assoc % square new-digits)))
         ;(print (render-grid @grid-ref))
-        (if (not (try-eliminate-value-from-peers grid-ref square new-digits)) false
-          (try-put-value-in-units grid-ref (units square) digit))))))
+        (if (not (try-eliminate-digit-from-peers grid-ref square new-digits)) false
+          (try-put-digit-in-units grid-ref (units square) digit))))))
 
 (defn- assign [grid-ref square digit]
   "Eliminate all the other values (except d) from grid[square]
@@ -128,8 +128,7 @@
           ;; choose the unfilled square s with the fewest possibilities
           (let [s (find-next-square grid-ref)]
             (println ">>> next: " s ":" (get @grid-ref s))
-            ;(let [success (some true? (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
-            (let [success (some true? (map #(if (assign grid-ref s %) (search grid-ref) false) (get @grid-ref s)))]
+            (let [success (some true? (map #(let [new-grid-ref (ref (copy-map @grid-ref))] (if (assign new-grid-ref s %) (search new-grid-ref) false)) (get @grid-ref s)))]
               (if (true? success) @grid-ref false)))))
 
 (defn solve [grid-str]
